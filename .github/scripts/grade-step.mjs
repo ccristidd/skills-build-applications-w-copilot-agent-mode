@@ -32,6 +32,34 @@ function resourceModelFile(root, resource) {
   return readText(root, file);
 }
 
+function resourceModelBindings(seed, modelName) {
+  const escapedName = modelName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const imports = new RegExp(
+    `import\\s+(?:\\{([^}]+)\\}|([\\w$]+))\\s+from\\s+['"][^'"]*/${escapedName}['"]`,
+    'gi',
+  );
+  const capitalizedName = modelName[0].toUpperCase() + modelName.slice(1);
+  const bindings = [];
+
+  for (const match of seed.matchAll(imports)) {
+    if (match[2]) {
+      bindings.push(match[2]);
+      continue;
+    }
+    for (const specifier of match[1].split(',')) {
+      const [importedName, localName] = specifier.trim().split(/\s+as\s+/i);
+      if (
+        importedName === capitalizedName ||
+        importedName === `${capitalizedName}Model`
+      ) {
+        bindings.push(localName ?? importedName);
+      }
+    }
+  }
+
+  return bindings.length > 0 ? bindings : [modelName];
+}
+
 function resourceComponent(root, resource) {
   const files = listFiles(root, 'octofit-tracker/frontend/src', /\.(?:jsx|tsx)$/);
   const file = files.find((candidate) =>
@@ -73,7 +101,7 @@ export const checks = {
       const modelText = resourceModelFile(root, resource);
       requirePatterns(
         modelText,
-        [/\bSchema\s*\(/i, /\bmodel\s*\(/i],
+        [/\bSchema(?:\s*<[^>]+>)?\s*\(/i, /\bmodel(?:\s*<[^>]+>)?\s*\(/i],
         `${resource} model file`,
       );
     }
@@ -85,16 +113,21 @@ export const checks = {
       seed,
       [
         /Seed the octofit_db database with test data/i,
-        /(?:insertMany|create|save)\s*\(/i,
         /mongoose\.connect|connectDB|connectDatabase/i,
       ],
       'Seed script',
     );
     for (const resource of resources) {
       const modelName = resourceModels[resource];
+      const writeMethods =
+        '(?:insertMany|create|bulkWrite|updateOne|updateMany|findOneAndUpdate|findByIdAndUpdate|replaceOne)';
+      const hasWrite = resourceModelBindings(seed, modelName).some(
+        (binding) =>
+          new RegExp(`\\b${binding}\\s*\\.\\s*${writeMethods}\\s*\\(`, 'i').test(seed) ||
+          new RegExp(`new\\s+${binding}\\s*\\([^)]*\\)\\s*\\.\\s*save\\s*\\(`, 'is').test(seed),
+      );
       assertValid(
-        new RegExp(`\\b${modelName}\\s*\\.\\s*(?:insertMany|create)\\s*\\(`, 'i').test(seed) ||
-          new RegExp(`new\\s+${modelName}\\s*\\([^)]*\\)\\s*\\.\\s*save\\s*\\(`, 'is').test(seed),
+        hasWrite,
         `Seed script does not write ${resource} data`,
       );
     }
