@@ -1,0 +1,31 @@
+.brand-logo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.navbar-brand {
+  color: #163c36;
+  font-weight: 700;
+}
+
+.navbar-nav .nav-link {
+  border-radius: 999px;
+}
+
+.navbar-nav .nav-link.active {
+  background: #e7f4ef;
+  color: #176b50;
+}
+
+main.container {
+  flex: 1;
+}
+
+section[aria-labelledby='resource-title'] {
+  text-align: left;
+}
+
+.table {
+  min-width: 600px;
+}

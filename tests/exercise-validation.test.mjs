@@ -212,6 +212,21 @@ test('every model file must declare its own schema and model', () => {
   assert.throws(() => checks['step3-models'](root), /teams model file is missing/);
 });
 
+test('Mongoose models with TypeScript generics pass model validation', () => {
+  const root = createCompletedLearnerApp();
+  for (const resource of ['User', 'Team', 'Activity', 'Leaderboard', 'Workout']) {
+    write(
+      root,
+      `octofit-tracker/backend/src/models/${resource}.ts`,
+      `import { Schema, model } from 'mongoose';
+       interface ${resource}Document { name: string; }
+       const schema = new Schema<${resource}Document>({ name: String });
+       export default model<${resource}Document>('${resource}', schema);`,
+    );
+  }
+  assert.doesNotThrow(() => checks['step3-models'](root));
+});
+
 test('the seed script must write every resource', () => {
   const root = createCompletedLearnerApp();
   const seed = path.join(root, 'octofit-tracker/backend/src/scripts/seed.ts');
@@ -220,6 +235,27 @@ test('the seed script must write every resource', () => {
     "console.log(Team.modelName);",
   ));
   assert.throws(() => checks['step3-seed'](root), /does not write teams data/);
+});
+
+test('bulk upserts count as writes for every resource in the seed script', () => {
+  const root = createCompletedLearnerApp();
+  const seed = path.join(root, 'octofit-tracker/backend/src/scripts/seed.ts');
+  fs.writeFileSync(
+    seed,
+    `import { UserModel } from '../models/user';
+     import { TeamModel } from '../models/team';
+     import { ActivityModel } from '../models/activity';
+     import { LeaderboardModel } from '../models/leaderboard';
+     import { WorkoutModel } from '../models/workout';
+     // Seed the octofit_db database with test data
+     connectDatabase();
+     UserModel.bulkWrite([]);
+     TeamModel.bulkWrite([]);
+     ActivityModel.bulkWrite([]);
+     LeaderboardModel.bulkWrite([]);
+     WorkoutModel.bulkWrite([]);`,
+  );
+  assert.doesNotThrow(() => checks['step3-seed'](root));
 });
 
 test('endpoint strings without Express registration are rejected', () => {
