@@ -1,10 +1,13 @@
 import express from 'express'
 import mongoose from 'mongoose'
 import { connectDatabase } from './config/database'
-import { apiRouter } from './routes/api'
+import { router } from './routes/api'
 
 const app = express()
 const port = Number(process.env.PORT ?? 8000)
+export const apiBaseUrl = process.env.CODESPACE_NAME
+  ? `https://${process.env.CODESPACE_NAME}-8000.app.github.dev`
+  : 'http://localhost:8000'
 
 app.use(express.json())
 app.use((_request, response, next) => {
@@ -26,7 +29,7 @@ app.get('/api/health/', (_request, response) => {
   })
 })
 
-app.use('/api', apiRouter)
+app.use(router)
 
 app.use(
   (
@@ -63,7 +66,7 @@ app.use(
 async function startServer(): Promise<void> {
   await connectDatabase()
   const server = app.listen(port, '0.0.0.0', () => {
-    console.log(`OctoFit API listening on port ${port}`)
+    console.log(`OctoFit API listening at ${apiBaseUrl}`)
   })
   server.on('error', (error) => {
     console.error('Unable to start OctoFit API:', error)

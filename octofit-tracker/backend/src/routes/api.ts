@@ -76,19 +76,19 @@ function createCrudRouter<T>(
   return router
 }
 
-export const apiRouter = Router()
+export const router = Router()
 
-apiRouter.use('/users', createCrudRouter('User', UserModel, { name: 1 }))
-apiRouter.use('/teams', createCrudRouter('Team', TeamModel, { name: 1 }))
-apiRouter.use(
-  '/activities',
+router.use('/api/users', createCrudRouter('User', UserModel, { name: 1 }))
+router.use('/api/teams', createCrudRouter('Team', TeamModel, { name: 1 }))
+router.use(
+  '/api/activities',
   createCrudRouter('Activity', ActivityModel, { recordedAt: -1 }),
 )
-apiRouter.use(
-  '/leaderboard',
+router.use(
+  '/api/leaderboard',
   createCrudRouter('Leaderboard entry', LeaderboardModel, { score: -1 }),
 )
-apiRouter.use(
-  '/workouts',
+router.use(
+  '/api/workouts',
   createCrudRouter('Workout', WorkoutModel, { title: 1 }),
 )
